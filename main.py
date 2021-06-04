@@ -20,7 +20,7 @@ video_capture = cv2.VideoCapture(0)
 anterior = 0
 Kernal = np.ones((3, 3), np.uint8)      #Declare kernal for morphology
 
-croppedScale = 0.1
+croppedScale = 0.11 #
 
 while True:
     if not video_capture.isOpened():
@@ -60,18 +60,22 @@ while True:
             opening = cv2.morphologyEx(binary, cv2.MORPH_OPEN, Kernal)  ##Opening Morphology
             dilate = cv2.morphologyEx(opening, cv2.MORPH_DILATE, Kernal)  ##Dilate Morphology
 
-            binary = binary[int(croppedScale * height):height, :]    ##Crop top 40%of the image
+            binary = binary[int(croppedScale * height):height, :]    ##Crop top of the image
             contours, hierarchy = cv2.findContours(dilate, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
             if len(contours) != 0:
                 cnt = contours[0]
                 M1 = cv2.moments(cnt)
                 
-                Cx1 = int(M1['m10'] / M1['m00'])        ##Find center of the contour
+                Cx1 = int(M1['m10'] / M1['m00'])##Find center of the contour
                 Cy1 = int(M1['m01'] / M1['m00'])
-                croppedImagePixelLength = int(croppedScale*height)       ##Number of pixels we cropped from the image
+                croppedImagePixelLength = int(croppedScale*height)## Number of pixels we cropped from the image
                 center1 = (int(Cx1+face_x+eye_x), int(Cy1+face_y + eye_y + croppedImagePixelLength))    ##Center coordinates
                 cv2.circle(frame, center1, 2, (0, 255, 0), 2)
+
+        if cv2.waitKey(1) & 0xFF == ord('p'):
+            print(center1)
+
 
     if anterior != len(faces):
         anterior = len(faces)
@@ -83,6 +87,7 @@ while True:
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
 
     # Display the resulting frame
     cv2.imshow('Video', frame)
