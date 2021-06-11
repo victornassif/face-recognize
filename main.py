@@ -4,12 +4,9 @@
 
 import cv2
 import numpy as np
-import logging as log
-import datetime as dt
 import matplotlib.pyplot as plt
-from time import sleep
 
-#CONSTS
+#CONST
 cascPath = "haarcascade_frontalface_alt.xml"
 eyePath = "haarcascade_eye_tree_eyeglasses.xml"
 face_cascade = cv2.CascadeClassifier(cascPath)
@@ -18,17 +15,13 @@ anterior = 0
 Kernal = np.ones((3, 3), np.uint8)#Declare kernal for morphology
 croppedScale = 0.11 #
 
-#init camera
-log.basicConfig(filename='webcam.log',level=log.INFO)
 video_capture = cv2.VideoCapture(0)
-
-#test
 fig = plt.figure()
 
 x1 = 600
 y1 = 800
 
-line1, = plt.plot(x1, y1, 'ko-')        # so that we can update data later
+line1, = plt.plot(x1, y1, 'ko-') 
 
 while True:
     #region Processamento camera
@@ -37,11 +30,11 @@ while True:
         sleep(5)
         pass
 
-    # Capture frame-by-frame
     ret, frame = video_capture.read()
     frame = cv2.flip(frame,+1)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+    #detecta faces
     faces = face_cascade.detectMultiScale(
         gray, 1.2, 1
     )
@@ -52,70 +45,71 @@ while True:
 
         faceROI = gray[face_y:face_y+face_h,face_x:face_x+face_w]
         
-        eye1 = (0,0)
-        eye2 = (0,0)
+        eyeLeft = [0,0]
+        eyeRight = [0,0]
 
-        #detecta 
+        #detecta olhos
         eyes = eyes_cascade.detectMultiScale(faceROI, 1.2, 1)
         for (eye_x,eye_y,eye_w,eye_h) in eyes:
             
-            #desenha círculo ROI eye
+            #desenha ROI olho
             eye_center = (face_x + eye_x + eye_w//2, face_y + eye_y + eye_h//2)
             radius = int(round((eye_w + eye_h)*0.25))
             frame = cv2.circle(frame, eye_center, radius, (255, 0, 0 ), 4)
             
-            #encontra e desenha íris
+            ##determina se o olho é esquerdo ou direito
+            #TODO: LÓGICA DE VERIFICAR E COMPARAR O X DO OLHO ESQUERDO COM O DIREITO
+            if eyeRight[0] < eyeLeft and eyeRight[0] > 0:
+                eyeRight[0] = cX
+                eyeRight[1] = cY
+                
+            if eyeLeft[0] < eye_x:
+                eyeLeft[0] = cX
+                eyeLeft[1] = cY
+
+            #encontra íris
             eyeROI = gray[face_y+eye_y:face_y+eye_y+eye_h, face_x+eye_x:face_x+eye_x+eye_w]
             ret, binary = cv2.threshold(eyeROI, 60, 255, cv2.THRESH_BINARY_INV)
             width, height = binary.shape
-
             opening = cv2.morphologyEx(binary, cv2.MORPH_OPEN, Kernal)
             dilate = cv2.morphologyEx(opening, cv2.MORPH_DILATE, Kernal)
 
-            binary = binary[int(croppedScale * height):height, :]##Crop top of the image
+            binary = binary[int(croppedScale * height):height, :]##Corta percentual da imagem, para remover sobrancelha
             contours, hierarchy = cv2.findContours(dilate, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
             if len(contours) != 0:
                 cnt = contours[0]
                 M1 = cv2.moments(cnt)
                 
-                Cx1 = int(M1['m10'] / M1['m00'])##Find center of the contour
+                Cx1 = int(M1['m10'] / M1['m00'])
                 Cy1 = int(M1['m01'] / M1['m00'])
-                croppedImagePixelLength = int(croppedScale*height)## Number of pixels we cropped from the image
+                croppedImagePixelLength = int(croppedScale*height)
 
                 cX = int(Cx1+face_x+eye_x)
                 cY = int(Cy1+face_y + eye_y + croppedImagePixelLength)
 
-                center1 = (cX,cY) ##Center coordinates
+                ##coordenadas íris
+                center1 = (cX,cY)
                
+                ##desenha íris
                 cv2.circle(frame, center1, 2, (0, 255, 0), 2)
 
 
-                line1.set_ydata(cX/cY)
-                print(cX/cY)
-                print(cX/cY)
-
-                # redraw the canvas
+                #Insere coordenada no gráfico e desenha para onde está apontando
+                line1.set_ydata(eyeLeft)                
                 fig.canvas.draw()
             
-                # convert canvas to image
+                #converte canvas para imagem
                 img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8,sep='')
                 img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
             
-                # # img is rgb, convert to opencv's default bgr
-                # img = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
-            
-                # display image with opencv or any operation you like
+                #Exibe tela com coordenada
                 cv2.imshow("plot",img)
                 
 
         if cv2.waitKey(1) & 0xFF == ord('p'):
             print(center1)
 
-
-    # if anterior != len(faces):
-    #     anterior = len(faces)
-    #     log.info("faces: "+str(len(faces))+" at "+str(dt.datetime.now()))
 
     cv2.imshow('Video', frame)
 
@@ -124,10 +118,5 @@ while True:
 
     #endregion
 
-    #region Processamento tela branca
-
-
-    #endregion 
-# When everything is done, release the capture
 video_capture.release()
 cv2.destroyAllWindows()
