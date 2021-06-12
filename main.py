@@ -9,20 +9,15 @@ from numpy.lib.twodim_base import eye
 
 # CONST
 cascPath = "haarcascade_frontalface_alt.xml"
-eyePath = "haarcascade_eye_tree_eyeglasses.xml"
+eyePath =  "haarcascade_eye_tree_eyeglasses.xml"
 face_cascade = cv2.CascadeClassifier(cascPath)
 eyes_cascade = cv2.CascadeClassifier(eyePath)
 anterior = 0
-Kernal = np.ones((3, 3), np.uint8)  # Declare kernal for morphology
+Kernal = np.ones((3, 3), np.uint8)# Declare kernal for morphology
 croppedScale = 0.11
 
 video_capture = cv2.VideoCapture(0)
-fig = plt.figure()
-
-x1 = 600
-y1 = 800
-
-line1, = plt.plot(x1, y1, 'ko-')
+fig = plt.figure(figsize=(10,7.5)) 
 
 while True:
     # region Processamento camera
@@ -51,7 +46,6 @@ while True:
 
         faceROI = gray[face_y:face_y+face_h, face_x:face_x+face_w]
 
-        # print('face instanciada')
         leftEye = [0, 0]
         rightEye = [0, 0]
         isLeftEye = False
@@ -114,22 +108,29 @@ while True:
                     lastSeenRightEye = rightEye
 
                 if (lastSeenLeftEye[0] > 0 and lastSeenRightEye[0] > 0):
-                    mediaBetweenEyes = [
-                        (lastSeenRightEye[0] + lastSeenLeftEye[0])/2, (lastSeenRightEye[1]+lastSeenLeftEye[1])/2]
-                   # Insere coordenada no gráfico e desenha para onde está apontando
-                    line1.set_ydata(mediaBetweenEyes)
+                    mediaBetweenEyes = [(lastSeenRightEye[0] + lastSeenLeftEye[0])/2, (lastSeenRightEye[1]+lastSeenLeftEye[1])/2]
+                    # Insere coordenada no gráfico e desenha para onde está apontando
+                    plt.xlim(0, 800)
+                    plt.ylim(0, 600)
+                    # update data
+                    plt.scatter(mediaBetweenEyes[0],mediaBetweenEyes[1])
+                    # redraw the canvas
+                    fig.canvas.draw()
 
-                    print('E' + str(lastSeenRightEye) +
-                          ' - ' + 'R' + str(lastSeenLeftEye))
+                    # convert canvas to image
+                    img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8,
+                            sep='')
+                    img  = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
-                fig.canvas.draw()
-                # converte canvas para imagem
-                img = np.fromstring(
-                    fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                    # Convert to opencv's default bgr
+                    img = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
 
-                # Exibe tela com coordenada
-                cv2.imshow("plot", img)
+
+                    # Mostra imagem com OpenCV
+                    cv2.imshow("plot",img)
+                    plt.clf()
+
+                    print('E' + str(lastSeenRightEye) +' - ' + 'R' + str(lastSeenLeftEye))
 
         if cv2.waitKey(1) & 0xFF == ord('p'):
             print(center1)
