@@ -37,12 +37,12 @@ for i in range(1000):
 
     # display image with opencv or any operation you like
     cv2.imshow("plot",img)
-
-    # display camera feed
-    ret,frame = cap.read()
-    cv2.imshow("cam",frame)
-
     plt.clf()
+
+    # # display camera feed
+    # ret,frame = cap.read()
+    # cv2.imshow("cam",frame)
+
 
     k = cv2.waitKey(33) & 0xFF
     if k == 27:
